@@ -1,0 +1,466 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<!--
+  namespace绑定了与之对应的接口,值是该接口的全限定名;这个参数有且只有一个
+-->
+<mapper namespace="com.wei.ssm.dao.UserDao">
+
+    <!--
+      用来描述select语句返回字段与java属性的映射关系。
+      可以有多个resultMap标签，用不同id区分不同标签。
+      可以实现一对多,多对多关系
+    -->
+    <resultMap id="BaseResultMap" type="com.wei.ssm.model.User">
+        <!--
+         column是表中的字段名。
+         property是对应的java属性。
+         jdbcTyep: 数据库中字段类型，它与Java中属性类型有对应关系，详情看下表。
+         id：数据库主键字段。
+         result：普通字段。
+         一对多标签 :
+         collection> property:对应的java属性名  ofType:对应的java属类型
+             <id property="java属性" column="author_third_id" jdbcType="BIGINT"/>
+            <result property="java属性" column="account_id" jdbcType="VARCHAR"/>
+        -->
+        <id column="id" jdbcType="INTEGER" property="id" />
+        <result column="name" jdbcType="VARCHAR" javaType="string"  property="name" />
+        <result column="logo" jdbcType="VARCHAR" property="logo" />
+        <result column="describe" jdbcType="VARCHAR" property="describe" />
+        <result column="is_enable" jdbcType="BIT" property="isEnable" />
+        <result column="phone" jdbcType="VARCHAR" property="phone" />
+        <result column="admin" jdbcType="VARCHAR" property="admin" />
+        <result column="password" jdbcType="VARCHAR" property="password" />
+        <result column="uuid" jdbcType="VARCHAR" property="uuid" />
+    </resultMap>
+    <!--
+    可以重用的 SQL 块,也可以被其他语句引用。
+
+    -->
+    <sql id="Example_Where_Clause">
+        <where>/* where 可以自动去除sql语句where关键字后的and关键字*/
+            /*
+            向sql传递数组或List,  mybatis使用foreach解析,可以做批量处理。
+            collection:传入的集合的变量名称(要遍历的值)。
+            item:每次循环将循环出的数据放入这个变量中。
+            open:循环开始拼接的字符串。
+            close:循环结束拼接的字符串。
+            separator:循环中拼接的分隔符。
+            */
+            <foreach collection="oredCriteria" item="criteria" separator="or">
+                /*
+                判断语句，test值等于true执行等于false跳过
+                test可以是一个值为Boolean型的计算语句
+                */
+                <if test="criteria.valid">
+                    /*
+                    前缀'and' 被'('  替换
+                    prefix：前缀覆盖并增加其内容 不写的话默认替换为空
+                    suffix：后缀覆盖并增加其内容 不写的话默认替换为空
+                    prefixOverrides：前缀判断的条件
+                    suffixOverrides：后缀判断的条件
+                    */
+                    <trim prefix="(" prefixOverrides="and" suffix=")">
+                        <foreach collection="criteria.criteria" item="criterion">
+                            /*
+                            choose 是或(or)的关系。
+                            choose标签是按顺序判断其内部when标签中的test条件出否成立，如果有一个成立，则 choose 结束。
+                            当 choose 中所有 when 的条件都不满则时，则执行 otherwise 中的sql。
+                            类似于Java 的 switch 语句，choose 为 switch，when 为 case，otherwise 则为 default。
+                            */
+                            <choose>
+                                <when test="criterion.noValue">
+                                    and ${criterion.condition}
+                                </when>
+                                <when test="criterion.singleValue">
+                                    and ${criterion.condition} #{criterion.value}
+                                </when>
+                                <when test="criterion.betweenValue">
+                                    and ${criterion.condition} #{criterion.value} and #{criterion.secondValue}
+                                </when>
+                                <when test="criterion.listValue">
+                                    and ${criterion.condition}
+                                    <foreach close=")" collection="criterion.value" item="listItem" open="(" separator=",">
+                                        #{listItem}
+                                    </foreach>
+                                </when>
+                            </choose>
+                        </foreach>
+                    </trim>
+                </if>
+            </foreach>
+        </where>
+    </sql>
+    <sql id="Update_By_Example_Where_Clause">
+        <where>
+            <foreach collection="example.oredCriteria" item="criteria" separator="or">
+                <if test="criteria.valid">
+                    <trim prefix="(" prefixOverrides="and" suffix=")">
+                        <foreach collection="criteria.criteria" item="criterion">
+                            <choose>
+                                <when test="criterion.noValue">
+                                    and ${criterion.condition}
+                                </when>
+                                <when test="criterion.singleValue">
+                                    and ${criterion.condition} #{criterion.value}
+                                </when>
+                                <when test="criterion.betweenValue">
+                                    and ${criterion.condition} #{criterion.value} and #{criterion.secondValue}
+                                </when>
+                                <when test="criterion.listValue">
+                                    and ${criterion.condition}
+                                    <foreach close=")" collection="criterion.value" item="listItem" open="(" separator=",">
+                                        #{listItem}
+                                    </foreach>
+                                </when>
+                            </choose>
+                        </foreach>
+                    </trim>
+                </if>
+            </foreach>
+        </where>
+    </sql>
+    <sql id="Base_Column_List">
+        <if test="fields == null">
+            id, name, logo, describe, is_enable, phone, admin, password, uuid
+        </if>
+        <if test="fields != null">
+            ${fields}
+        </if>
+    </sql>
+
+    <!--
+    select查询语句标签
+    id: 与namespace接口中的方法名对应
+    parameterType: 参数类型
+    resultMap : 返回值类型
+    自增IDset到对象中: useGeneratedKeys="true" keyProperty="id" keyColumn="id"
+    支持类型简写,详情看下表
+    -->
+    <select id="selectByExample" parameterType="com.wei.ssm.model.User" resultMap="BaseResultMap">
+        select
+        <if test="distinct">
+            distinct
+        </if>
+        <include refid="Base_Column_List" />/*引入一个SQL模块*/
+        from customer
+        <if test="_parameter != null">
+            <include refid="Example_Where_Clause" />
+        </if>
+        <if test="orderByClause != null">
+            order by ${orderByClause}
+        </if>
+        <if test="startRow != null">
+            limit #{startRow} , #{pageSize}
+        </if>
+    </select>
+    <select id="selectByPrimaryKey" parameterType="java.lang.Integer" resultMap="BaseResultMap">
+    select
+    id,name,logo,describe,is_enable,phone,admin,password,uuid
+    from customer
+    where id = #{id,jdbcType=INTEGER}
+  </select>
+    <!--
+    delete删除语句标签
+    id: 与namespace接口中的方法名对应
+    parameterType: 参数类型
+    -->
+    <delete id="deleteByPrimaryKey" parameterType="java.lang.Integer">
+    delete from customer
+    where id = #{id,jdbcType=INTEGER}
+  </delete>
+    <delete id="deleteByExample" parameterType="com.wei.ssm.model.User">
+        delete from customer
+        <if test="_parameter != null">
+            <include refid="Example_Where_Clause" />
+        </if>
+    </delete>
+
+    <!--插入语句-->
+    <insert id="insert" parameterType="com.wei.ssm.model.User">
+    insert into customer (id, name, logo,
+      describe, is_enable, phone,
+      admin, password, uuid
+      )
+    values (#{id,jdbcType=INTEGER}, #{name,jdbcType=VARCHAR}, #{logo,jdbcType=VARCHAR},
+      #{describe,jdbcType=VARCHAR}, #{isEnable,jdbcType=BIT}, #{phone,jdbcType=VARCHAR},
+      #{admin,jdbcType=VARCHAR}, #{password,jdbcType=VARCHAR}, #{uuid,jdbcType=VARCHAR}
+      )
+  </insert>
+    <insert id="insertSelective" parameterType="com.wei.ssm.model.User">
+        insert into customer
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            <if test="id != null">
+                id,
+            </if>
+            <if test="name != null">
+                name,
+            </if>
+            <if test="logo != null">
+                logo,
+            </if>
+            <if test="describe != null">
+                describe,
+            </if>
+            <if test="isEnable != null">
+                is_enable,
+            </if>
+            <if test="phone != null">
+                phone,
+            </if>
+            <if test="admin != null">
+                admin,
+            </if>
+            <if test="password != null">
+                password,
+            </if>
+            <if test="uuid != null">
+                uuid,
+            </if>
+        </trim>
+        <trim prefix="values (" suffix=")" suffixOverrides=",">
+            <if test="id != null">
+                #{id,jdbcType=INTEGER},
+            </if>
+            <if test="name != null">
+                #{name,jdbcType=VARCHAR},
+            </if>
+            <if test="logo != null">
+                #{logo,jdbcType=VARCHAR},
+            </if>
+            <if test="describe != null">
+                #{describe,jdbcType=VARCHAR},
+            </if>
+            <if test="isEnable != null">
+                #{isEnable,jdbcType=BIT},
+            </if>
+            <if test="phone != null">
+                #{phone,jdbcType=VARCHAR},
+            </if>
+            <if test="admin != null">
+                #{admin,jdbcType=VARCHAR},
+            </if>
+            <if test="password != null">
+                #{password,jdbcType=VARCHAR},
+            </if>
+            <if test="uuid != null">
+                #{uuid,jdbcType=VARCHAR},
+            </if>
+        </trim>
+    </insert>
+    <select id="countByExample" parameterType="com.wei.ssm.model.User" resultType="java.lang.Long">
+        select count(*) from customer
+        <if test="_parameter != null">
+            <include refid="Example_Where_Clause" />
+        </if>
+    </select>
+    <update id="updateByExampleSelective" parameterType="map">
+        update customer
+        <set>
+            <if test="record.id != null">
+                id = #{record.id,jdbcType=INTEGER},
+            </if>
+            <if test="record.name != null">
+                name = #{record.name,jdbcType=VARCHAR},
+            </if>
+            <if test="record.logo != null">
+                logo = #{record.logo,jdbcType=VARCHAR},
+            </if>
+            <if test="record.describe != null">
+                describe = #{record.describe,jdbcType=VARCHAR},
+            </if>
+            <if test="record.isEnable != null">
+                is_enable = #{record.isEnable,jdbcType=BIT},
+            </if>
+            <if test="record.phone != null">
+                phone = #{record.phone,jdbcType=VARCHAR},
+            </if>
+            <if test="record.admin != null">
+                admin = #{record.admin,jdbcType=VARCHAR},
+            </if>
+            <if test="record.password != null">
+                password = #{record.password,jdbcType=VARCHAR},
+            </if>
+            <if test="record.uuid != null">
+                uuid = #{record.uuid,jdbcType=VARCHAR},
+            </if>
+        </set>
+        <if test="_parameter != null">
+            <include refid="Update_By_Example_Where_Clause" />
+        </if>
+    </update>
+    <update id="updateByExample" parameterType="map">
+        update customer
+        set id = #{record.id,jdbcType=INTEGER},
+        name = #{record.name,jdbcType=VARCHAR},
+        logo = #{record.logo,jdbcType=VARCHAR},
+        describe = #{record.describe,jdbcType=VARCHAR},
+        is_enable = #{record.isEnable,jdbcType=BIT},
+        phone = #{record.phone,jdbcType=VARCHAR},
+        admin = #{record.admin,jdbcType=VARCHAR},
+        password = #{record.password,jdbcType=VARCHAR},
+        uuid = #{record.uuid,jdbcType=VARCHAR}
+        <if test="_parameter != null">
+            <include refid="Update_By_Example_Where_Clause" />
+        </if>
+    </update>
+    <update id="updateByPrimaryKeySelective" parameterType="com.wei.ssm.model.User">
+        update customer
+        <set>
+            <if test="name != null">
+                name = #{name,jdbcType=VARCHAR},
+            </if>
+            <if test="logo != null">
+                logo = #{logo,jdbcType=VARCHAR},
+            </if>
+            <if test="describe != null">
+                describe = #{describe,jdbcType=VARCHAR},
+            </if>
+            <if test="isEnable != null">
+                is_enable = #{isEnable,jdbcType=BIT},
+            </if>
+            <if test="phone != null">
+                phone = #{phone,jdbcType=VARCHAR},
+            </if>
+            <if test="admin != null">
+                admin = #{admin,jdbcType=VARCHAR},
+            </if>
+            <if test="password != null">
+                password = #{password,jdbcType=VARCHAR},
+            </if>
+            <if test="uuid != null">
+                uuid = #{uuid,jdbcType=VARCHAR},
+            </if>
+        </set>
+        where id = #{id,jdbcType=INTEGER}
+    </update>
+    <update id="updateByPrimaryKey" parameterType="com.wei.ssm.model.User">
+    update customer
+    set name = #{name,jdbcType=VARCHAR},
+      logo = #{logo,jdbcType=VARCHAR},
+      describe = #{describe,jdbcType=VARCHAR},
+      is_enable = #{isEnable,jdbcType=BIT},
+      phone = #{phone,jdbcType=VARCHAR},
+      admin = #{admin,jdbcType=VARCHAR},
+      password = #{password,jdbcType=VARCHAR},
+      uuid = #{uuid,jdbcType=VARCHAR}
+    where id = #{id,jdbcType=INTEGER}
+  </update>
+    <update id="batchUpdateByKeys" parameterType="java.util.List">
+        update customer
+        <trim prefix="set" suffixOverrides=",">
+            <trim prefix="id =case id" suffix="end,">
+                <foreach collection="recordList" index="index" item="item">
+                    <if test="item.id !=null ">
+                        when #{item.id,jdbcType=INTEGER} then #{item.id,jdbcType=INTEGER}
+                    </if>
+                    <if test="item.id ==null ">
+                        when #{item.id,jdbcType=INTEGER} then customer.id
+                    </if>
+                </foreach>
+            </trim>
+            <trim prefix="name =case id" suffix="end,">
+                <foreach collection="recordList" index="index" item="item">
+                    <if test="item.name !=null ">
+                        when #{item.id,jdbcType=INTEGER} then #{item.name,jdbcType=VARCHAR}
+                    </if>
+                    <if test="item.name ==null ">
+                        when #{item.id,jdbcType=INTEGER} then customer.name
+                    </if>
+                </foreach>
+            </trim>
+            <trim prefix="logo =case id" suffix="end,">
+                <foreach collection="recordList" index="index" item="item">
+                    <if test="item.logo !=null ">
+                        when #{item.id,jdbcType=INTEGER} then #{item.logo,jdbcType=VARCHAR}
+                    </if>
+                    <if test="item.logo ==null ">
+                        when #{item.id,jdbcType=INTEGER} then customer.logo
+                    </if>
+                </foreach>
+            </trim>
+            <trim prefix="describe =case id" suffix="end,">
+                <foreach collection="recordList" index="index" item="item">
+                    <if test="item.describe !=null ">
+                        when #{item.id,jdbcType=INTEGER} then #{item.describe,jdbcType=VARCHAR}
+                    </if>
+                    <if test="item.describe ==null ">
+                        when #{item.id,jdbcType=INTEGER} then customer.describe
+                    </if>
+                </foreach>
+            </trim>
+            <trim prefix="is_enable =case id" suffix="end,">
+                <foreach collection="recordList" index="index" item="item">
+                    <if test="item.isEnable !=null ">
+                        when #{item.id,jdbcType=INTEGER} then #{item.isEnable,jdbcType=BIT}
+                    </if>
+                    <if test="item.isEnable ==null ">
+                        when #{item.id,jdbcType=INTEGER} then customer.is_enable
+                    </if>
+                </foreach>
+            </trim>
+            <trim prefix="phone =case id" suffix="end,">
+                <foreach collection="recordList" index="index" item="item">
+                    <if test="item.phone !=null ">
+                        when #{item.id,jdbcType=INTEGER} then #{item.phone,jdbcType=VARCHAR}
+                    </if>
+                    <if test="item.phone ==null ">
+                        when #{item.id,jdbcType=INTEGER} then customer.phone
+                    </if>
+                </foreach>
+            </trim>
+            <trim prefix="admin =case id" suffix="end,">
+                <foreach collection="recordList" index="index" item="item">
+                    <if test="item.admin !=null ">
+                        when #{item.id,jdbcType=INTEGER} then #{item.admin,jdbcType=VARCHAR}
+                    </if>
+                    <if test="item.admin ==null ">
+                        when #{item.id,jdbcType=INTEGER} then customer.admin
+                    </if>
+                </foreach>
+            </trim>
+            <trim prefix="password =case id" suffix="end,">
+                <foreach collection="recordList" index="index" item="item">
+                    <if test="item.password !=null ">
+                        when #{item.id,jdbcType=INTEGER} then #{item.password,jdbcType=VARCHAR}
+                    </if>
+                    <if test="item.password ==null ">
+                        when #{item.id,jdbcType=INTEGER} then customer.password
+                    </if>
+                </foreach>
+            </trim>
+            <trim prefix="uuid =case id" suffix="end,">
+                <foreach collection="recordList" index="index" item="item">
+                    <if test="item.uuid !=null ">
+                        when #{item.id,jdbcType=INTEGER} then #{item.uuid,jdbcType=VARCHAR}
+                    </if>
+                    <if test="item.uuid ==null ">
+                        when #{item.id,jdbcType=INTEGER} then customer.uuid
+                    </if>
+                </foreach>
+            </trim>
+        </trim>
+        where id in(
+        <foreach collection="recordList" index="index" item="item" separator=",">
+            #{item.id,jdbcType=INTEGER}
+        </foreach>
+        )
+    </update>
+    <insert id="batchInsert" parameterType="com.wei.ssm.model.User">
+        insert into customer (id,
+        name, logo, describe,
+        is_enable, phone, admin,
+        password, uuid)
+        values <foreach collection="list" item="item" index="index" separator="," > (#{item.id,jdbcType=INTEGER},
+        #{item.name,jdbcType=VARCHAR}, #{item.logo,jdbcType=VARCHAR}, #{item.describe,jdbcType=VARCHAR},
+        #{item.isEnable,jdbcType=BIT}, #{item.phone,jdbcType=VARCHAR}, #{item.admin,jdbcType=VARCHAR},
+        #{item.password,jdbcType=VARCHAR}, #{item.uuid,jdbcType=VARCHAR})</foreach>
+    </insert>
+    <delete id="batchDeleteByKeys" parameterType="java.lang.Integer">
+        delete from customer where id in (
+        <foreach collection="ids" index="index" item="id" separator=",">
+            #{id}
+        </foreach>
+        )
+    </delete>
+</mapper>

@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<!--
+  namespace绑定了与之对应的接口,值是该接口的全限定名;这个参数有且只有一个
+-->
+<mapper namespace="com.wei.ssm.dao.StudentDao">
+    <resultMap id="baseResultMap" type="com.wei.ssm.model.Student">
+        <id column="id" jdbcType="VARCHAR" property="id" />
+        <result column="user_name" jdbcType="VARCHAR" javaType="string"  property="userName" />
+        <result column="sex" jdbcType="INTEGER" property="sex" />
+    </resultMap>
+
+    <select id="queryStudentById" parameterType="java.lang.String" resultMap="baseResultMap">
+        select
+            id, user_name, sex
+        from student
+        where
+            id = #{id,jdbcType=VARCHAR}
+    </select>
+
+</mapper>
